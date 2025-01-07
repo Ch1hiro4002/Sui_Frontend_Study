@@ -5,92 +5,119 @@ import { State, User } from "./type/struct_type";
 import "./styles/App.css";
 
 function App() {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const {mutate: signAndExecute} = useSignAndExecuteTransaction();
-  const [state, setState] = useState<State | null>(null);
-  const [hasProfile, setHasProfile] = useState(false);
-  const [profiles, setProfiles] = useState<User[]>([]);
-  const currentUser = useCurrentAccount();
+  const [name, setName] = useState(""); // 用户名
+  const [description, setDescription] = useState(""); // 用户简介
+  const { mutate: signAndExecute } = useSignAndExecuteTransaction();
+  const [state, setState] = useState<State | null>(null); // 全局状态
+  const [profiles, setProfiles] = useState<User[]>([]); // 所有用户资料列表
+  const [currentProfile, setCurrentProfile] = useState<User | null>(null); // 当前账户的 Profile
+  const currentUser = useCurrentAccount(); // 当前用户账户
 
+  // 获取 Sui 链上的状态
   useEffect(() => {
     const fetchState = async () => {
-      const state = await queryState();
-      setState(state);
-      if (state) {
-        const userProfiles = state.users.filter(user => user.owner === currentUser?.address);
-        setProfiles(userProfiles); // 将当前用户的所有资料保存到 profiles 状态中
-        setHasProfile(userProfiles.length > 0); // 如果当前用户有资料，则设置为 true
+      try {
+        const state = await queryState();
+        setState(state);
+        setProfiles(state.users); // 保存所有用户资料
+
+        // 检查当前账户是否有 Profile
+        if (currentUser) {
+          const userProfile = state.users.find((user) => user.owner === currentUser.address);
+          setCurrentProfile(userProfile || null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch state:", err);
       }
     };
     fetchState();
-  }, [state,currentUser]);
+  }, [state, currentUser]);
 
-  interface ProfileCardProps {
-    owner: string;
-    profile: string;
-  }
-  // ProfileCard 组件
-  const ProfileCard = ({ owner, profile }: ProfileCardProps) => {
-    const profileLink = `https://suiscan.xyz/testnet/object/${profile}`;
-    return (
-      <div className="profile-card">
-        <div className="owner"><span>Owner: </span>{owner}</div>
-        <div className="profile"><span>Profile: </span><a href={profileLink}>{profile}</a></div>
-      </div>
-    );
-  };
-
-
+  // 创建 Profile
   const handleCreateProfile = async () => {
     if (!currentUser) {
       console.log("User not connected");
       return;
     }
-    const tx = await createProfile(name, description);
-    signAndExecute({
-      transaction: tx
-    }, {
-      onSuccess: () => {
-        console.log("Profile created");
-      },
-      onError: (error) => {
-        console.log(error);
-      }
-    });
+    try {
+      const tx = await createProfile(name, description);
+      signAndExecute(
+        { transaction: tx },
+        {
+          onSuccess: () => {
+            console.log("Profile created");
+            setName("");
+            setDescription("");
+            setCurrentProfile({ owner: currentUser.address, profile: "new_profile_id", name });
+          },
+          onError: (error) => {
+            console.error("Failed to create profile:", error);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error executing transaction:", error);
+    }
+  };
+
+  // ProfileCard 组件
+  const ProfileCard = ({ owner, profile }: { owner: string; profile: string }) => {
+    const profileLink = `https://suiscan.xyz/testnet/object/${profile}`;
+    return (
+      <div className="profile-card">
+        <div className="owner">
+          <span>Owner: </span>
+          {owner}
+        </div>
+        <div className="profile">
+          <span>Profile: </span>
+          <a href={profileLink} target="_blank" rel="noopener noreferrer">
+            {profile}
+          </a>
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* DApp Title on the Left */}
+      {/* 页面标题 */}
       <div className="dapp-title-wrapper">
         <span className="text-2xl">Manage</span>
       </div>
-  
-      {/* Wallet Connect Button on the Right */}
+
+      {/* 连接钱包按钮 */}
       <div className="connect-btn-wrapper">
         <ConnectButton />
       </div>
-  
+
       <main className="container">
         <div className="flex flex-col items-center justify-center">
           <div className="w-full max-w-md space-y-6">
-            <div className="space-y-2 text-center">
-              <h1 className="heading">Create Profile</h1>
-              <p className="text-muted-foreground">Enter your details to create your on-chain profile</p>
-            </div>
-  
-            {/* If currentUser has a profile, show the profile list */}
-            {currentUser && hasProfile ? (
-              <div className="profile-list">
-                {profiles.map((profile, index) => (
-                  <ProfileCard key={index} owner={profile.owner} profile={profile.profile} />
-                ))}
-              </div>
+
+
+            {/* 根据当前账户是否有 Profile 显示不同的界面 */}
+            {currentProfile ? (
+              <>
+                <div className="space-y-2 text-center">
+                  <h1 className="heading">Profile List</h1>
+                </div>
+                <h2>Your Profile</h2>
+                <ProfileCard owner={currentProfile.owner} profile={currentProfile.profile} />
+                <h2>All Profiles</h2>
+                <div className="profiles-list">
+                  {profiles.map((user, index) => (
+                    <ProfileCard key={index} owner={user.owner} profile={user.profile} />
+                  ))}
+                </div>
+              </>
             ) : (
               <div className="space-y-4">
+                <h1 className="heading">Create Profile</h1>
                 <div className="space-y-2">
-                  <label htmlFor="name" className="label">Name</label>
+                  <label htmlFor="name" className="label">
+                    Name
+                  </label>
                   <input
                     id="name"
                     type="text"
@@ -100,9 +127,11 @@ function App() {
                     className="input"
                   />
                 </div>
-  
+
                 <div className="space-y-2">
-                  <label htmlFor="bio" className="label">Bio</label>
+                  <label htmlFor="bio" className="label">
+                    Bio
+                  </label>
                   <textarea
                     id="bio"
                     placeholder="Tell us about yourself"
@@ -112,11 +141,8 @@ function App() {
                     className="input"
                   />
                 </div>
-  
-                <button
-                  onClick={handleCreateProfile}
-                  className="button"
-                >
+
+                <button onClick={handleCreateProfile} className="button">
                   Create Profile
                 </button>
               </div>
@@ -126,7 +152,6 @@ function App() {
       </main>
     </div>
   );
-  
 }
 
 export default App;
