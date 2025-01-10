@@ -5,7 +5,7 @@ import { State, User } from "../type/struct_type"
 export const queryState = async () => {
     const events = await suiClient.queryEvents({
         query: {
-            MoveEventType: `${networkConfig.testnet.packageID}::resource_manage::ProfileCreated`
+            MoveEventType: `${networkConfig.testnet.packageID_v1}::resource_manage::ProfileCreated`
         }
     })
     const state:State = {
@@ -19,7 +19,7 @@ export const queryState = async () => {
 }
 
 export const createProfile = async(name: string, description: string) => {
-    const packageID = networkConfig.testnet.packageID;
+    const packageID = networkConfig.testnet.packageID_v1;
     const state = networkConfig.testnet.State;
     
     const tx = new Transaction();
