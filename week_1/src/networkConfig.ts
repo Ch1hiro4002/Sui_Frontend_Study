@@ -5,8 +5,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
   createNetworkConfig({
     testnet: {
       url: getFullnodeUrl("testnet"),
-      packageID_v1: "0x1e2694113cacf38672ab775c10662791d0af80c7dbaa9b3c7f09566885211427",
-      State: "0x82576d371018b8d0b49abbd7179ece1c2b47a51f5641ca1807db934b19e899b1",
+      packageID_v1: "0xcb764601ba2573e1e31fc11f5770897753ee2934ed11e8c86612b8ca5c73e9af",
+      State: "0x185d432938a81bec3945417806c11ef739c962a7d99b5aa55292d894d31651dd",
     },
   });
 

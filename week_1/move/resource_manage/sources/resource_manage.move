@@ -5,7 +5,7 @@ module resource_manage::resource_manage{
 
     const VERSION: u64 = 1;
     const EProfileExit: u64 = 0;
-    const EWrongVersion: u64 = 2;
+    const EWrongVersion: u64 = 1;
 
     public struct AdminCap has key {
         id: UID,
